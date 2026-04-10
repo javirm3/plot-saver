@@ -1,7 +1,5 @@
-[plots]
-save_format = "png"
-
-[widgets.save_figure]
+[plot-saver]
+format = "png"
 default_label = "Save"
 save_all_label = "Save all model plots"
 empty_title = "No plots available"
@@ -11,6 +9,8 @@ saved_many_title = "Saved {count} plots"
 saved_error_title = "Saved with errors"
 failed_title = "Could not save plots"
 toast_detail_color = "#6b7280"
+
+[plot-saver.theme]
 radius = "8px"
 padding_y = "0.45rem"
 padding_x = "0.9rem"

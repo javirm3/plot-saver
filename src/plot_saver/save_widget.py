@@ -20,10 +20,14 @@ def _read_asset(name: str) -> str:
 
 def _get_save_figure_config(config_path: Path | None) -> dict[str, str]:
     cfg = load_app_config(config_path)
-    section = cfg.get("widgets", {}).get("save_figure", {})
+    section = cfg.get("plot-saver", {})
     if not isinstance(section, dict):
         return {}
-    return {str(key): str(value) for key, value in section.items()}
+    save_cfg = {str(key): str(value) for key, value in section.items() if not isinstance(value, dict)}
+    theme_section = section.get("theme", {})
+    if isinstance(theme_section, dict):
+        save_cfg.update({str(key): str(value) for key, value in theme_section.items()})
+    return save_cfg
 
 
 def _save_figure_theme_tokens(save_cfg: dict[str, str]) -> dict[str, str]:
@@ -71,7 +75,7 @@ class SaveFigureAnyWidget(anywidget.AnyWidget):
 
 def get_plot_save_format(config_path: Path | None = None) -> str:
     cfg = load_app_config(config_path)
-    fmt = str(cfg.get("plots", {}).get("save_format", "pdf")).lower().strip(". ")
+    fmt = str(cfg.get("plot-saver", {}).get("format", "pdf")).lower().strip(". ")
     if fmt not in {"pdf", "svg", "png"}:
         fmt = "pdf"
     return fmt
