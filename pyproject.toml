@@ -1,6 +1,6 @@
 [project]
 name = "plot-saver"
-version = "0.1.1"
+version = "0.1.2"
 description = "Reusable anywidget plot saver configurable with a config.toml."
 readme = "README.md"
 requires-python = ">=3.11"
