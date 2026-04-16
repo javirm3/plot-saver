@@ -12,10 +12,6 @@ from .config import find_project_config_path, load_app_config
 _ASSET_DIR = Path(__file__).parent
 
 
-def _read_asset(name: str) -> str:
-    return (_ASSET_DIR / name).read_text(encoding="utf-8")
-
-
 def _get_save_figure_config(config_path: Path | None) -> dict[str, str]:
     cfg = load_app_config(config_path)
     section = cfg.get("plot-saver", {})
@@ -62,8 +58,8 @@ def _toast_detail_html(detail: str, save_cfg: dict[str, str]) -> str:
 
 
 class SaveFigureAnyWidget(anywidget.AnyWidget):
-    _esm = _read_asset("figure_save_widget.js")
-    _css = _read_asset("figure_save_widget.css")
+    _esm = _ASSET_DIR / "figure_save_widget.js"
+    _css = _ASSET_DIR / "figure_save_widget.css"
 
     clicks = traitlets.Int(0).tag(sync=True)
     label = traitlets.Unicode("Save").tag(sync=True)

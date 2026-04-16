@@ -1,6 +1,13 @@
 from plot_saver.save_widget import SaveFigureAnyWidget
 
 
+def test_save_widget_assets_are_file_backed():
+    assert SaveFigureAnyWidget._esm._path.name == "figure_save_widget.js"
+    assert SaveFigureAnyWidget._css._path.name == "figure_save_widget.css"
+    assert SaveFigureAnyWidget._esm._path.is_file()
+    assert SaveFigureAnyWidget._css._path.is_file()
+
+
 def test_click_command_increments_clicks_and_clears_command():
     widget = SaveFigureAnyWidget()
 
