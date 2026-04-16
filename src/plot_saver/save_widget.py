@@ -6,8 +6,6 @@ from typing import Any
 
 import anywidget
 import traitlets
-
-from .anywidget_compat import wrap_anywidget
 from .config import find_project_config_path, load_app_config
 
 
@@ -171,7 +169,7 @@ class PlotSaver:
         )
         self._save_all.observe(self._handle_save_all_click, names="clicks")
         self._save_all._save_observer = self._handle_save_all_click
-        self._save_all_ui = None
+        self._save_all_button = None
 
     def _save_one(self, fig, *, stem: str, location: tuple[int, int] | None = None) -> Path:
         return save_figure(
@@ -218,6 +216,16 @@ class PlotSaver:
     def _handle_save_all_click(self, change) -> None:
         if int(change["new"]) <= int(change["old"]):
             return
+        self._run_save_all()
+
+    def _handle_save_all_button_click(self, value):
+        self._run_save_all()
+        try:
+            return int(value) + 1
+        except Exception:
+            return 1
+
+    def _run_save_all(self) -> None:
         if not self._registry:
             self.mo.status.toast(
                 self.save_cfg.get("empty_title", "No plots available"),
@@ -259,9 +267,12 @@ class PlotSaver:
 
     def save_all_widget(self, label: str | None = None):
         self._save_all.label = label or self.save_cfg.get("save_all_label", "Save all model plots")
-        if self._save_all_ui is None:
-            self._save_all_ui = wrap_anywidget(self._save_all)
-        return self._save_all_ui
+        if self._save_all_button is None:
+            self._save_all_button = self.mo.ui.button(
+                label=self._save_all.label,
+                on_click=self._handle_save_all_button_click,
+            )
+        return self._save_all_button
 
     def __call__(
         self,
@@ -280,11 +291,8 @@ class PlotSaver:
         resolved_stem = stem or default_stem
         button_label = label or f"{self.save_cfg.get('default_label', 'Save')} .{self.fmt}"
         self._register(fig, name=name, stem=resolved_stem, location=location)
-        widget = SaveFigureAnyWidget(label=button_label, theme_tokens=self.theme_tokens)
 
-        def _handle_click(change):
-            if int(change["new"]) <= int(change["old"]):
-                return
+        def _handle_click(value):
             try:
                 out_path = self._save_one(fig, stem=resolved_stem, location=location)
                 self.mo.status.toast(
@@ -297,10 +305,15 @@ class PlotSaver:
                     _toast_detail_html(f"{type(exc).__name__}: {exc}", self.save_cfg),
                     kind="danger",
                 )
+            try:
+                return int(value) + 1
+            except Exception:
+                return 1
 
-        widget.observe(_handle_click, names="clicks")
-        widget._save_observer = _handle_click
-        return wrap_anywidget(widget)
+        return self.mo.ui.button(
+            label=button_label,
+            on_click=_handle_click,
+        )
 
 
 def make_plot_saver(mo, *, results_dir: Path, config_path: Path | None, task_name: str, model_id: str):
