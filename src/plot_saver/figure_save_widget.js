@@ -19,11 +19,16 @@ function render({ model, el }) {
     button.disabled = !!model.get("disabled");
   };
 
+  const sendCommand = (command, payload = {}) => {
+    model.set("command", command);
+    model.set("command_payload", payload);
+    model.set("command_nonce", (model.get("command_nonce") || 0) + 1);
+    model.save_changes();
+  };
+
   button.addEventListener("click", () => {
     if (button.disabled) return;
-    const clicks = model.get("clicks") || 0;
-    model.set("clicks", clicks + 1);
-    model.save_changes();
+    sendCommand("click");
   });
 
   model.on("change:label", updateButton);

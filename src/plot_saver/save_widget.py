@@ -71,6 +71,17 @@ class SaveFigureAnyWidget(anywidget.AnyWidget):
     label = traitlets.Unicode("Save").tag(sync=True)
     disabled = traitlets.Bool(False).tag(sync=True)
     theme_tokens = traitlets.Dict(default_value={}).tag(sync=True)
+    command = traitlets.Unicode("").tag(sync=True)
+    command_payload = traitlets.Dict(default_value={}).tag(sync=True)
+    command_nonce = traitlets.Int(0).tag(sync=True)
+
+    @traitlets.observe("command_nonce")
+    def _on_command(self, change) -> None:  # noqa: ARG002
+        if self.command == "click":
+            self.clicks += 1
+
+        self.command = ""
+        self.command_payload = {}
 
 
 def get_plot_save_format(config_path: Path | None = None) -> str:

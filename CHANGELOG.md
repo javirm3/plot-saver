@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3
+
+- Switched the save button anywidget bridge to an explicit JS-to-Python command channel, matching the stable marimo toml editor pattern.
+- Added regression tests for the command handler so save button events are exercised without a live notebook session.
+
 ## 0.1.2
 
 - Dropped wrapper-level anywidget UIElement caching so marimo rebuilds the plot saver widget with a fresh virtual-file JavaScript module on each rerun.
