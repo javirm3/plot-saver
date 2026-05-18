@@ -79,10 +79,55 @@ def test_plot_saver_individual_button_uses_current_registry_item():
     fig_current = _Figure()
     button_current = plot_saver(fig_current, "Example", stem="example")
 
-    assert button_current is button_initial
+    assert button_current is not button_initial
 
     button_current.clicks = 2
 
     assert len(fig_initial.saved) == 1
     assert len(fig_current.saved) == 1
     assert fig_current.saved[0][0].name == f"example.{plot_saver.fmt}"
+
+
+def test_plot_saver_old_individual_button_uses_current_registry_item():
+    mo = _Mo()
+    plot_saver = PlotSaver(
+        mo,
+        results_dir=Path(tempfile.mkdtemp()),
+        config_path=None,
+        task_name="task",
+        model_id="model",
+    )
+
+    fig_initial = _Figure()
+    button_initial = plot_saver(fig_initial, "Example", stem="example")
+    fig_current = _Figure()
+    plot_saver(fig_current, "Example", stem="example")
+
+    button_initial.clicks = 1
+
+    assert len(fig_initial.saved) == 0
+    assert len(fig_current.saved) == 1
+    assert fig_current.saved[0][0].name == f"example.{plot_saver.fmt}"
+
+
+def test_save_all_widget_instances_are_fresh_and_enable_after_registration():
+    mo = _Mo()
+    plot_saver = PlotSaver(
+        mo,
+        results_dir=Path(tempfile.mkdtemp()),
+        config_path=None,
+        task_name="task",
+        model_id="model",
+    )
+
+    save_all_initial = plot_saver.save_all_widget()
+    save_all_current = plot_saver.save_all_widget()
+
+    assert save_all_current is not save_all_initial
+    assert save_all_initial.disabled
+    assert save_all_current.disabled
+
+    plot_saver(_Figure(), "Example", stem="example")
+
+    assert not save_all_initial.disabled
+    assert not save_all_current.disabled

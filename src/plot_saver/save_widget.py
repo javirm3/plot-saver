@@ -158,15 +158,8 @@ class PlotSaver:
         self.save_cfg = _get_save_figure_config(self.config_path)
         self.theme_tokens = _save_figure_theme_tokens(self.save_cfg)
         self._registry: dict[str, dict[str, object]] = {}
-        self._save_all = SaveFigureAnyWidget(
-            label=self.save_cfg.get("save_all_label", "Save all model plots"),
-            disabled=True,
-            theme_tokens=self.theme_tokens,
-        )
-        self._save_all.observe(self._handle_save_all_click, names="clicks")
-        self._save_all._save_observer = self._handle_save_all_click
-        self._save_all_button = None
-        self._buttons: dict[str, SaveFigureAnyWidget] = {}
+        self._save_all_widgets: list[SaveFigureAnyWidget] = []
+        self._save_widgets: list[SaveFigureAnyWidget] = []
 
     def _save_one(self, fig, *, stem: str, location: tuple[int, int] | None = None) -> Path:
         return save_figure(
@@ -186,7 +179,9 @@ class PlotSaver:
             "stem": stem,
             "location": location,
         }
-        self._save_all.disabled = not bool(self._registry)
+        disabled = not bool(self._registry)
+        for widget in self._save_all_widgets:
+            widget.disabled = disabled
 
     def _saved_message(self, saved_paths: list[Path]) -> str:
         if not saved_paths:
@@ -298,8 +293,15 @@ class PlotSaver:
         self._run_save_one(stem)
 
     def save_all_widget(self, label: str | None = None):
-        self._save_all.label = label or self.save_cfg.get("save_all_label", "Save all model plots")
-        return self._save_all
+        widget = SaveFigureAnyWidget(
+            label=label or self.save_cfg.get("save_all_label", "Save all model plots"),
+            disabled=not bool(self._registry),
+            theme_tokens=self.theme_tokens,
+        )
+        widget.observe(self._handle_save_all_click, names="clicks")
+        widget._save_observer = self._handle_save_all_click
+        self._save_all_widgets.append(widget)
+        return widget
 
     def __call__(
         self,
@@ -319,21 +321,15 @@ class PlotSaver:
         button_label = label or f"{self.save_cfg.get('default_label', 'Save')} .{self.fmt}"
         self._register(fig, name=name, stem=resolved_stem, location=location)
 
-        widget = self._buttons.get(resolved_stem)
-        if widget is None:
-            widget = SaveFigureAnyWidget(
-                label=button_label,
-                disabled=False,
-                theme_tokens=self.theme_tokens,
-            )
-            observer = lambda change, _stem=resolved_stem: self._handle_save_button_click(_stem, change)
-            widget.observe(observer, names="clicks")
-            widget._save_observer = observer
-            self._buttons[resolved_stem] = widget
-        else:
-            widget.label = button_label
-            widget.disabled = False
-            widget.theme_tokens = self.theme_tokens
+        widget = SaveFigureAnyWidget(
+            label=button_label,
+            disabled=False,
+            theme_tokens=self.theme_tokens,
+        )
+        observer = lambda change, _stem=resolved_stem: self._handle_save_button_click(_stem, change)
+        widget.observe(observer, names="clicks")
+        widget._save_observer = observer
+        self._save_widgets.append(widget)
         return widget
 
 
