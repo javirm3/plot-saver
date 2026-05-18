@@ -166,6 +166,7 @@ class PlotSaver:
         self._save_all.observe(self._handle_save_all_click, names="clicks")
         self._save_all._save_observer = self._handle_save_all_click
         self._save_all_button = None
+        self._buttons: dict[str, SaveFigureAnyWidget] = {}
 
     def _save_one(self, fig, *, stem: str, location: tuple[int, int] | None = None) -> Path:
         return save_figure(
@@ -261,14 +262,44 @@ class PlotSaver:
             _toast_detail_html(self._saved_message(saved_paths), self.save_cfg),
         )
 
+    def _run_save_one(self, stem: str) -> None:
+        item = self._registry.get(stem)
+        if item is None:
+            self.mo.status.toast(
+                self.save_cfg.get("empty_title", "No plots available"),
+                _toast_detail_html(
+                    self.save_cfg.get("empty_detail", "Render the notebook plots first."),
+                    self.save_cfg,
+                ),
+                kind="danger",
+            )
+            return
+
+        try:
+            out_path = self._save_one(
+                item["fig"],
+                stem=str(item["stem"]),
+                location=item["location"],
+            )
+            self.mo.status.toast(
+                self.save_cfg.get("saved_title", "Saved"),
+                _toast_detail_html(out_path.name, self.save_cfg),
+            )
+        except Exception as exc:
+            self.mo.status.toast(
+                self.save_cfg.get("failed_title", "Could not save plots"),
+                _toast_detail_html(f"{type(exc).__name__}: {exc}", self.save_cfg),
+                kind="danger",
+            )
+
+    def _handle_save_button_click(self, stem: str, change) -> None:
+        if int(change["new"]) <= int(change["old"]):
+            return
+        self._run_save_one(stem)
+
     def save_all_widget(self, label: str | None = None):
         self._save_all.label = label or self.save_cfg.get("save_all_label", "Save all model plots")
-        if self._save_all_button is None:
-            self._save_all_button = self.mo.ui.button(
-                label=self._save_all.label,
-                on_click=self._handle_save_all_button_click,
-            )
-        return self._save_all_button
+        return self._save_all
 
     def __call__(
         self,
@@ -288,28 +319,22 @@ class PlotSaver:
         button_label = label or f"{self.save_cfg.get('default_label', 'Save')} .{self.fmt}"
         self._register(fig, name=name, stem=resolved_stem, location=location)
 
-        def _handle_click(value):
-            try:
-                out_path = self._save_one(fig, stem=resolved_stem, location=location)
-                self.mo.status.toast(
-                    self.save_cfg.get("saved_title", "Saved"),
-                    _toast_detail_html(out_path.name, self.save_cfg),
-                )
-            except Exception as exc:
-                self.mo.status.toast(
-                    self.save_cfg.get("failed_title", "Could not save plots"),
-                    _toast_detail_html(f"{type(exc).__name__}: {exc}", self.save_cfg),
-                    kind="danger",
-                )
-            try:
-                return int(value) + 1
-            except Exception:
-                return 1
-
-        return self.mo.ui.button(
-            label=button_label,
-            on_click=_handle_click,
-        )
+        widget = self._buttons.get(resolved_stem)
+        if widget is None:
+            widget = SaveFigureAnyWidget(
+                label=button_label,
+                disabled=False,
+                theme_tokens=self.theme_tokens,
+            )
+            observer = lambda change, _stem=resolved_stem: self._handle_save_button_click(_stem, change)
+            widget.observe(observer, names="clicks")
+            widget._save_observer = observer
+            self._buttons[resolved_stem] = widget
+        else:
+            widget.label = button_label
+            widget.disabled = False
+            widget.theme_tokens = self.theme_tokens
+        return widget
 
 
 def make_plot_saver(mo, *, results_dir: Path, config_path: Path | None, task_name: str, model_id: str):
